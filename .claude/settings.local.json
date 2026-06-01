@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/yushuishui/Desktop/Make money/WXR2/**)",
+      "Read(//c/Users/yushuishui/Desktop/Make money/WXR/**)",
+      "Read(//c/Users/yushuishui/Desktop/Make money/SLZ/RailWayGIS/server/**)",
+      "Read(//c/Users/yushuishui/Desktop/Make money/SLZ/RailWayGIS/client/**)",
+      "Bash(npm run *)",
+      "Bash(sleep 5 && cat \"/c/Users/YUSHUI~1/AppData/Local/Temp/claude/c--Users-yushuishui-gis-homepage/1d5edc2c-8308-4834-ba20-24176dbef04e/tasks/bp6vimb5e.output\")",
+      "Read(//c/Users/YUSHUI~1/AppData/Local/Temp/claude/c--Users-yushuishui-gis-homepage/1d5edc2c-8308-4834-ba20-24176dbef04e/tasks/**)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl -s http://localhost:5174/)"
+    ]
+  }
+}
