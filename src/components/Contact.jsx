@@ -1,17 +1,39 @@
 import { useState } from "react";
 
+// ===================== API 配置 =====================
+// 本地开发：http://localhost:3000
+// 生产环境：替换为 ngrok 公网地址
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
-  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState(null); // { ok: true/false, message: '' }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // 演示：弹出后清空
-    setSent(true);
-    setTimeout(() => {
-      setSent(false);
-      setForm({ name: "", email: "", message: "" });
-    }, 3000);
+    setSending(true);
+    setResult(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        setResult({ ok: true, message: data.message });
+        setForm({ name: "", email: "", message: "" });
+      } else {
+        setResult({ ok: false, message: data.error || "提交失败" });
+      }
+    } catch (err) {
+      setResult({ ok: false, message: "网络错误，请稍后再试" });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -97,15 +119,23 @@ export default function Contact() {
 
               <button
                 type="submit"
-                disabled={sent}
+                disabled={sending}
                 className={`w-full py-3 rounded-xl font-medium text-white transition-all ${
-                  sent
+                  result?.ok
                     ? "bg-green-500"
-                    : "bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-500/25"
+                    : sending
+                      ? "bg-slate-400 cursor-not-allowed"
+                      : "bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-500/25"
                 }`}
               >
-                {sent ? "✅ 发送成功！" : "发送消息"}
+                {sending ? "⏳ 提交中..." : result?.ok ? "✅ 发送成功！" : "发送消息"}
               </button>
+              {result && !result.ok && (
+                <p className="text-red-500 text-sm text-center mt-2">{result.message}</p>
+              )}
+              {result?.ok && (
+                <p className="text-green-600 text-sm text-center mt-2">{result.message}</p>
+              )}
             </form>
           </div>
         </div>

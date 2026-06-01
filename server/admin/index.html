@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理后台 — 用户留言</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f1f5f9; color: #1e293b; }
+    .header { background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; padding: 20px 32px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 20px; font-weight: 600; }
+    .header .count { font-size: 14px; opacity: 0.85; }
+    .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    .toolbar { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; }
+    .btn { padding: 8px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-outline { background: #fff; color: #3b82f6; border: 1px solid #3b82f6; }
+    .btn-outline:hover { background: #eff6ff; }
+    .table-wrap { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f8fafc; text-align: left; padding: 12px 16px; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8fafc; }
+    .msg-cell { max-width: 350px; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+    .time-cell { white-space: nowrap; color: #64748b; font-size: 13px; }
+    .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
+    .empty .icon { font-size: 48px; margin-bottom: 12px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; background: #dbeafe; color: #1e40af; }
+    .toast { position: fixed; top: 20px; right: 20px; background: #22c55e; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transform: translateY(-10px); transition: all 0.3s; pointer-events: none; z-index: 100; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: #ef4444; }
+    @media (max-width: 768px) {
+      .header { padding: 16px; }
+      td, th { padding: 10px 8px; font-size: 12px; }
+      .msg-cell { max-width: 150px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>📋 用户留言管理</h1>
+    </div>
+    <div class="count" id="count">加载中...</div>
+  </div>
+
+  <div class="container">
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="loadData()">🔄 刷新数据</button>
+      <span style="color:#64748b;font-size:13px;" id="updateTime"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:60px">#</th>
+            <th style="width:100px">姓名</th>
+            <th style="width:180px">邮箱</th>
+            <th>留言内容</th>
+            <th style="width:140px">提交时间</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="5" class="empty"><div class="icon">📭</div>暂无留言数据</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    async function loadData() {
+      const tbody = document.getElementById('tbody')
+      const count = document.getElementById('count')
+      const updateTime = document.getElementById('updateTime')
+      tbody.innerHTML = '<tr><td colspan="5" class="empty"><div class="icon">⏳</div>加载中...</td></tr>'
+
+      try {
+        const res = await fetch('/api/contact')
+        const json = await res.json()
+
+        if (!json.ok || !json.data.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="empty"><div class="icon">📭</div>暂无留言数据</td></tr>'
+          count.textContent = '共 0 条留言'
+          updateTime.textContent = new Date().toLocaleString('zh-CN') + ' 已刷新'
+          return
+        }
+
+        tbody.innerHTML = json.data.map((row, i) => `
+          <tr>
+            <td>${json.data.length - i}</td>
+            <td><strong>${esc(row.name)}</strong></td>
+            <td>${esc(row.email)}</td>
+            <td><div class="msg-cell">${esc(row.message)}</div></td>
+            <td class="time-cell">${fmt(row.created_at)}</td>
+          </tr>
+        `).join('')
+
+        count.textContent = `共 ${json.data.length} 条留言`
+        updateTime.textContent = new Date().toLocaleString('zh-CN') + ' 已刷新'
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty"><div class="icon">❌</div>加载失败: ' + esc(err.message) + '</td></tr>'
+        showToast('加载失败，请检查后端是否运行', true)
+      }
+    }
+
+    function esc(s) {
+      if (!s) return ''
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    }
+
+    function fmt(d) {
+      if (!d) return ''
+      return new Date(d).toLocaleString('zh-CN')
+    }
+
+    function showToast(msg, isError) {
+      const t = document.getElementById('toast')
+      t.textContent = msg
+      t.className = 'toast show' + (isError ? ' error' : '')
+      setTimeout(() => { t.className = 'toast' }, 2500)
+    }
+
+    // 页面加载时自动获取
+    loadData()
+    // 每30秒自动刷新
+    setInterval(loadData, 30000)
+  </script>
+</body>
+</html>
